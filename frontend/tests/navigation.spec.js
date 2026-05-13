@@ -30,6 +30,13 @@ async function mockAllApiFunctions(page) {
 }
 
 test.describe("Unauthenticated routing", () => {
+  test.beforeEach(async ({ page }) => {
+    // Abort Auth0 OIDC discovery so isLoading → false before h1 assertions.
+    // Without this, the spinner is visible when goto resolves and toBeVisible
+    // might exhaust its retry window before LandingPage renders.
+    await page.route("**/.well-known/openid-configuration**", (r) => r.abort());
+  });
+
   test("/ shows LandingPage when not authenticated", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("h1")).toBeVisible();

@@ -11,6 +11,10 @@ test.describe("API URL configuration", () => {
   test("no production Supabase API calls made on landing page load", async ({ page }) => {
     const prodApiCalls = [];
 
+    // Abort Auth0 OIDC discovery so isLoading → false and networkidle is
+    // reached promptly rather than waiting on a slow/unreachable Auth0 domain.
+    await page.route("**/.well-known/openid-configuration**", (r) => r.abort());
+
     page.on("request", (req) => {
       const url = req.url();
       // Flag any request to *.supabase.co that is a function call
@@ -46,7 +50,7 @@ test.describe("API URL configuration", () => {
 
   test("VITE_SUPABASE_URL env variable is not empty in the page", async ({ page }) => {
     // Vite injects VITE_* env vars into import.meta.env at build time.
-    // We expose it to the test via evaluate to verify it’s set.
+    // We expose it to the test via evaluate to verify it's set.
     await page.goto("/");
 
     const supabaseUrl = await page.evaluate(() => {
@@ -56,7 +60,7 @@ test.describe("API URL configuration", () => {
       return window.__VOXIDRIA_SUPABASE_URL__ ?? null;
     });
 
-    // If the app doesn’t expose the var on window, the check is informational only.
+    // If the app doesn't expose the var on window, the check is informational only.
     if (supabaseUrl !== null) {
       expect(supabaseUrl).not.toBe("");
       expect(supabaseUrl).toMatch(/^https?:\/\//); // must be a valid URL

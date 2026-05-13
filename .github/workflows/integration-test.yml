@@ -22,10 +22,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           cache: pip
           cache-dependency-path: ml/requirements.txt
 
@@ -36,6 +36,19 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r ml/requirements.txt pytest
+
+      - name: Print dependency versions
+        run: |
+          python -c "
+import sys, tensorflow as tf, librosa, parselmouth, joblib, numpy as np
+print('Python  :', sys.version)
+print('TF      :', tf.__version__)
+print('Keras   :', tf.keras.__version__)
+print('librosa :', librosa.__version__)
+print('parselmouth:', parselmouth.__version__)
+print('joblib  :', joblib.__version__)
+print('numpy   :', np.__version__)
+"
 
       - name: Verify or train ML artifacts
         run: |
@@ -58,7 +71,7 @@ jobs:
       - name: Run ML unit tests
         run: |
           mkdir -p test-results
-          pytest tests/ml/test_ml_unit.py -v --junit-xml=test-results/ml-results.xml
+          pytest tests/ml/test_ml_unit.py -v -s --tb=short --junit-xml=test-results/ml-results.xml
 
       - name: Upload ML test results
         uses: actions/upload-artifact@v4
@@ -90,6 +103,15 @@ jobs:
         # --ignore-health-check avoids failures when optional services (e.g.
         # logflare, vector) are slow to start on cold GH-hosted runners.
         run: supabase start --ignore-health-check
+
+      - name: Verify Supabase services
+        working-directory: backend
+        run: |
+          supabase status
+          curl -sf http://127.0.0.1:54321/rest/v1/ \
+            -H "apikey: ${{ env.SUPABASE_LOCAL_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_LOCAL_ANON_KEY }}" \
+            && echo "REST API healthy" || echo "REST API not responding (check supabase status above)"
 
       - name: Create Edge Functions env file
         working-directory: backend

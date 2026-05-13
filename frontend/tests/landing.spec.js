@@ -6,10 +6,16 @@ import { test, expect } from "@playwright/test";
  */
 test.describe("LandingPage", () => {
   test.beforeEach(async ({ page }) => {
-    // Do NOT set window.__CI_E2E__ so MockAuth0Provider is NOT used.
-    // The app renders LandingPage when isAuthenticated is false.
+    // Do NOT set window.__CI_E2E__ — RealAuth0Provider is used so we test the
+    // genuine unauthenticated landing page.
+    //
+    // Auth0Provider calls checkSession() asynchronously after the first render,
+    // keeping isLoading=true (and showing only a spinner) until the request
+    // settles. Aborting the OIDC discovery request forces Auth0 to fail fast
+    // so isLoading→false before any of our assertions run.
+    await page.route("**/.well-known/openid-configuration**", (r) => r.abort());
     await page.goto("/");
-    await page.waitForLoadState("domcontentloaded");
+    await page.waitForLoadState("networkidle");
   });
 
   test("page title contains Voxidria", async ({ page }) => {
