@@ -22,10 +22,13 @@ const MOCK_SESSIONS_ONE    = {
 
 async function setupDashboard(page, sessionsMock = MOCK_SESSIONS_EMPTY) {
   await page.addInitScript(() => { window.__CI_E2E__ = true; });
+  // Catch-all registered FIRST so it has the lowest priority.
+  // Playwright matches routes in reverse registration order (LIFO), so
+  // handlers added later take precedence over handlers added earlier.
+  await page.route("**/functions/v1/**", (r) => r.fulfill({ json: {} }));
   await page.route("**/functions/v1/list-sessions**", (r) =>
     r.fulfill({ json: sessionsMock })
   );
-  await page.route("**/functions/v1/**", (r) => r.fulfill({ json: {} }));
   await page.goto("/");
   await page.waitForLoadState("networkidle");
 }
@@ -53,11 +56,12 @@ test.describe("DashboardPage", () => {
   test("list-sessions API is called on load", async ({ page }) => {
     let listSessionsCalled = false;
     await page.addInitScript(() => { window.__CI_E2E__ = true; });
+    // Catch-all first (lowest priority), specific handler second (highest priority).
+    await page.route("**/functions/v1/**", (r) => r.fulfill({ json: {} }));
     await page.route("**/functions/v1/list-sessions**", (r) => {
       listSessionsCalled = true;
       return r.fulfill({ json: MOCK_SESSIONS_EMPTY });
     });
-    await page.route("**/functions/v1/**", (r) => r.fulfill({ json: {} }));
 
     await page.goto("/");
     await page.waitForLoadState("networkidle");

@@ -59,6 +59,7 @@ AUTH0_AUDIENCE=your-api-identifier
 GEMINI_API_KEY=your-gemini-key
 ELEVENLABS_API_KEY=your-elevenlabs-key
 CI_TEST_USER_SUB=test|local-user-123
+CI_BYPASS_AUTH=true
 EOF
 
 # 3. Serve Edge Functions in the background
@@ -71,7 +72,7 @@ CI_TOKEN=ci-dummy-token \
 bash tests/backend/run_integration_tests.sh
 ```
 
-> **Note:** `CI_TEST_USER_SUB` bypasses Auth0 JWT verification inside Edge Functions — the Bearer token value is ignored when this env var is set.
+> **Note:** Both `CI_TEST_USER_SUB` and `CI_BYPASS_AUTH=true` must be set together. `verifyAuth0.ts` requires both env vars to activate the bypass, so setting only one has no effect and real JWT verification remains active.
 
 ---
 
@@ -131,7 +132,7 @@ Local Supabase `anon` and `service_role` keys are deterministic for any local in
 
 ### Auth Bypass in CI
 
-**Edge Functions:** The workflow sets `CI_TEST_USER_SUB=test|ci-user-123` in the functions env file. `verifyAuth0.ts` detects this variable and returns a mock Auth0 claims object immediately, skipping all HTTPS calls to Auth0's JWKS endpoint. The Bearer token sent by the test script is never validated.
+**Edge Functions:** The workflow sets both `CI_TEST_USER_SUB=test|ci-user-123` and `CI_BYPASS_AUTH=true` in the functions env file. `verifyAuth0.ts` requires **both** env vars to be present before returning the mock claims object. This two-variable gate ensures a single misconfiguration cannot silently disable Auth0 verification — an attacker would need to control both variables simultaneously. Neither variable is ever present in production Edge Function environments.
 
 **Frontend E2E:** Playwright calls `page.addInitScript(() => { window.__CI_E2E__ = true; })` before each page load. In Vite dev mode (`import.meta.env.DEV`), `main.jsx` checks this flag and wraps the app with `MockAuth0Provider` instead of the real `Auth0Provider`. This exposes a fully authenticated context (fake user, mock `getAccessTokenSilently`) without any Auth0 SDK network activity.
 

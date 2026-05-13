@@ -55,14 +55,14 @@ function getJWKS(): ReturnType<typeof createRemoteJWKSet> {
  */
 export async function verifyAuth0Token(req: Request): Promise<Auth0Claims> {
   // ── CI / integration-test bypass ──────────────────────────────────────────
-  // When CI_TEST_USER_SUB is set in the Edge Function environment, skip full
-  // JWT verification and return a synthetic claims object.  This variable is
-  // ONLY injected via the CI functions env file (supabase/.env.ci) and must
-  // NEVER appear in any production deployment's environment.  The backend
-  // database still enforces ownership checks against this synthetic sub, so
-  // test data is isolated from production data.
+  // BOTH CI_TEST_USER_SUB and CI_BYPASS_AUTH must be explicitly set to
+  // activate this path.  Requiring two independent env vars means a single
+  // misconfiguration cannot silently disable Auth0 verification — an attacker
+  // would need to control both variables simultaneously.  Neither variable is
+  // ever present in production Edge Function environments.
   const ciTestUserSub = Deno.env.get("CI_TEST_USER_SUB");
-  if (ciTestUserSub) {
+  const ciBypassAuth  = Deno.env.get("CI_BYPASS_AUTH") === "true";
+  if (ciTestUserSub && ciBypassAuth) {
     return {
       sub: ciTestUserSub,
       email: "ci-test@example.com",

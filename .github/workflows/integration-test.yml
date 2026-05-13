@@ -39,6 +39,10 @@ jobs:
 
       - name: Verify or train ML artifacts
         run: |
+          echo "=== ml/artifacts/ ==="
+          ls -la ml/artifacts/ || echo "Directory not found"
+          echo "=== backend/ml/artifacts/ ==="
+          ls -la backend/ml/artifacts/ || echo "Directory not found"
           if [ ! -f ml/artifacts/parkinsons_model.h5 ] || \
              [ ! -f ml/artifacts/scaler.joblib ] || \
              [ ! -f ml/artifacts/feature_names.joblib ]; then
@@ -83,7 +87,9 @@ jobs:
 
       - name: Start Supabase local stack
         working-directory: backend
-        run: supabase start
+        # --ignore-health-check avoids failures when optional services (e.g.
+        # logflare, vector) are slow to start on cold GH-hosted runners.
+        run: supabase start --ignore-health-check
 
       - name: Create Edge Functions env file
         working-directory: backend
@@ -94,6 +100,7 @@ jobs:
           GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
           ELEVENLABS_API_KEY=${{ secrets.ELEVENLABS_API_KEY }}
           CI_TEST_USER_SUB=test|ci-user-123
+          CI_BYPASS_AUTH=true
           EOF
 
       - name: Serve Edge Functions
