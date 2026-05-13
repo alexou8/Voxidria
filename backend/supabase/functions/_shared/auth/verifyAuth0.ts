@@ -54,6 +54,25 @@ function getJWKS(): ReturnType<typeof createRemoteJWKSet> {
  * @returns Parsed, verified JWT claims including 'sub' (user ID)
  */
 export async function verifyAuth0Token(req: Request): Promise<Auth0Claims> {
+  // ── CI / integration-test bypass ──────────────────────────────────────────
+  // BOTH CI_TEST_USER_SUB and CI_BYPASS_AUTH must be explicitly set to
+  // activate this path.  Requiring two independent env vars means a single
+  // misconfiguration cannot silently disable Auth0 verification — an attacker
+  // would need to control both variables simultaneously.  Neither variable is
+  // ever present in production Edge Function environments.
+  const ciTestUserSub = Deno.env.get("CI_TEST_USER_SUB");
+  const ciBypassAuth  = Deno.env.get("CI_BYPASS_AUTH") === "true";
+  if (ciTestUserSub && ciBypassAuth) {
+    return {
+      sub: ciTestUserSub,
+      email: "ci-test@example.com",
+      iss: `https://${Deno.env.get("AUTH0_DOMAIN") ?? "ci.example.com"}/`,
+      aud: Deno.env.get("AUTH0_AUDIENCE") ?? "ci",
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    };
+  }
+
   const authHeader = req.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     throw new Error("Unauthorized: Missing or malformed Authorization header");
