@@ -54,6 +54,25 @@ function getJWKS(): ReturnType<typeof createRemoteJWKSet> {
  * @returns Parsed, verified JWT claims including 'sub' (user ID)
  */
 export async function verifyAuth0Token(req: Request): Promise<Auth0Claims> {
+  // ── CI / integration-test bypass ──────────────────────────────────────────
+  // When CI_TEST_USER_SUB is set in the Edge Function environment, skip full
+  // JWT verification and return a synthetic claims object.  This variable is
+  // ONLY injected via the CI functions env file (supabase/.env.ci) and must
+  // NEVER appear in any production deployment's environment.  The backend
+  // database still enforces ownership checks against this synthetic sub, so
+  // test data is isolated from production data.
+  const ciTestUserSub = Deno.env.get("CI_TEST_USER_SUB");
+  if (ciTestUserSub) {
+    return {
+      sub: ciTestUserSub,
+      email: "ci-test@example.com",
+      iss: `https://${Deno.env.get("AUTH0_DOMAIN") ?? "ci.example.com"}/`,
+      aud: Deno.env.get("AUTH0_AUDIENCE") ?? "ci",
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    };
+  }
+
   const authHeader = req.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     throw new Error("Unauthorized: Missing or malformed Authorization header");
