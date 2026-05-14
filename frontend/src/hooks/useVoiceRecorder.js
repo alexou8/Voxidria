@@ -44,7 +44,7 @@ export function useVoiceRecorder() {
       timerRef.current = setInterval(() => {
         setDuration(Math.floor((Date.now() - startTime.current) / 1000));
       }, 500);
-    } catch (err) {
+    } catch (_err) {
       setError("Microphone access denied. Please allow microphone permissions.");
     }
   }, []);
