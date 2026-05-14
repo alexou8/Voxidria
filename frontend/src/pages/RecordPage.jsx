@@ -189,6 +189,12 @@ export default function RecordPage() {
     resetGuideAudio();
   }, [phase, currentTask]);
 
+  useEffect(() => {
+    if (phase === "uploading") {
+      uploadAll();
+    }
+  }, [phase]);
+
   const playMedicalAssistant = async (section) => {
     const reqId = latestGuideReqId.current + 1;
     latestGuideReqId.current = reqId;
@@ -278,7 +284,7 @@ export default function RecordPage() {
       setAge(parsedAge);
       resetGuideAudio();
       setPhase("recording");
-    } catch (err) {
+    } catch (_err) {
       setSessionError("Could not start session. Please try again.");
     }
   }
@@ -296,7 +302,7 @@ export default function RecordPage() {
       }
       const ageParam = age != null ? `&age=${encodeURIComponent(age)}` : "";
       navigate(`/results?session=${sessionId}${ageParam}`);
-    } catch (err) {
+    } catch (_err) {
       setUploadError("Upload failed. Please try again.");
       setPhase("recording");
     }
@@ -459,7 +465,6 @@ export default function RecordPage() {
               Running feature extraction and ML inference.<br />
               This usually takes under 10 seconds.
             </div>
-            {!uploadError && navigate(`/results?session=${sessionId}`)}
             {uploadError && <p className="rp-error" style={{ marginTop: "1rem" }}>{uploadError}</p>}
           </div>
         </main>

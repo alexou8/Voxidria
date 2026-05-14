@@ -69,7 +69,6 @@ test.describe("Authenticated routing (mock auth)", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     // DashboardPage should NOT show the LandingPage h1
-    const h1 = page.locator("h1");
     const bodyText = await page.locator("body").innerText();
     // Should show some dashboard UI, not the landing page hero
     expect(bodyText).not.toMatch(/Hear what your/i);

@@ -21,7 +21,7 @@ test.describe("RecordPage", () => {
           this.state  = "inactive";
           this.mimeType = "audio/webm";
         }
-        start(timeslice) {
+        start(_timeslice) {
           this.state = "recording";
           this.dispatchEvent(new Event("start"));
         }
